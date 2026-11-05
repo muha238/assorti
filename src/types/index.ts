@@ -1,3 +1,5 @@
+import type { Promo } from "@/lib/promo";
+
 export type Category = {
   id: string;
   name: string;
@@ -13,6 +15,7 @@ export type MenuItem = {
   price: number;
   image_url: string | null;
   is_available: boolean;
+  promo: Promo | null;
   sort_order: number;
 };
 
@@ -40,6 +43,7 @@ export type OrderItemRow = {
   name: string;
   price: number;
   quantity: number;
+  free_quantity: number;
 };
 
 export type Order = {

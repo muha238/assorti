@@ -23,6 +23,7 @@ create table if not exists public.menu_items (
   price        int  not null check (price >= 0),   -- теңгемен, бүтін сан
   image_url    text,
   is_available boolean not null default true,
+  promo        text check (promo is null or promo in ('1+1')),  -- акция
   sort_order   int not null default 0,
   created_at   timestamptz not null default now()
 );
@@ -50,7 +51,8 @@ create table if not exists public.order_items (
   menu_item_id  uuid references public.menu_items(id) on delete set null,
   name          text not null,   -- сол сәттегі атауы (snapshot)
   price         int  not null,   -- сол сәттегі бағасы (snapshot)
-  quantity      int  not null check (quantity > 0)
+  quantity      int  not null check (quantity > 0),
+  free_quantity int  not null default 0 check (free_quantity >= 0)  -- 1+1 тегін порциялар
 );
 create index if not exists order_items_order_idx on public.order_items(order_id);
 

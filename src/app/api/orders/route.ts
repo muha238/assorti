@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyNewOrder } from "@/lib/telegram";
+import { freeQuantity, isPromo } from "@/lib/promo";
 import type { CreateOrderPayload } from "@/types";
 
 const MAX_QTY = 50;
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
   const ids = [...new Set(payload.items.map((i) => i.id))];
   const { data: dbItems, error: itemsErr } = await supabase
     .from("menu_items")
-    .select("id, name, price, is_available")
+    .select("id, name, price, is_available, promo")
     .in("id", ids);
 
   if (itemsErr) {
@@ -55,13 +56,39 @@ export async function POST(req: Request) {
   }
 
   const byId = new Map(dbItems.map((i) => [i.id, i]));
-  const lines: { menu_item_id: string; name: string; price: number; quantity: number }[] = [];
+  const lines: {
+    menu_item_id: string;
+    name: string;
+    price: number;
+    quantity: number;
+    free_quantity: number;
+  }[] = [];
+  const soldOut: string[] = [];
   for (const { id, quantity } of payload.items) {
     const db = byId.get(id);
-    if (!db || !db.is_available) {
-      return NextResponse.json({ error: "Кейбір тағамдар қазір қолжетімсіз" }, { status: 409 });
+    if (!db) {
+      soldOut.push("белгісіз тағам");
+      continue;
     }
-    lines.push({ menu_item_id: id, name: db.name, price: db.price, quantity });
+    if (!db.is_available) {
+      soldOut.push(db.name);
+      continue;
+    }
+    // Акцияны клиенттен АЛМАЙМЫЗ — базадағы promo бойынша есептейміз
+    const promo = isPromo(db.promo) ? db.promo : null;
+    lines.push({
+      menu_item_id: id,
+      name: db.name,
+      price: db.price,
+      quantity,
+      free_quantity: freeQuantity(promo, quantity),
+    });
+  }
+  if (soldOut.length > 0) {
+    return NextResponse.json(
+      { error: `Бітіп қалды: ${soldOut.join(", ")}. Себеттен алып тастаңыз.`, soldOut },
+      { status: 409 },
+    );
   }
   const total = lines.reduce((s, l) => s + l.price * l.quantity, 0);
 

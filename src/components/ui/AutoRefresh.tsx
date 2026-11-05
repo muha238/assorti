@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-/** Админ бетін N секунд сайын жаңартып тұрады (жаңа тапсырыстар көрінуі үшін). */
+/** Бетті N секунд сайын серверден жаңартады (жаңа тапсырыс / «бітті» күйі көрінуі үшін). */
 export function AutoRefresh({ seconds }: { seconds: number }) {
   const router = useRouter();
   useEffect(() => {

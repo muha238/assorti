@@ -1,12 +1,24 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { freeQuantity } from "@/lib/promo";
 import type { CartItem, MenuItem } from "@/types";
+import type { Promo } from "@/lib/promo";
+
+/** Себеттегі позиция + мәзірдің ағымдағы күйі (бітті ме, акция бар ма) */
+export type CartLine = CartItem & {
+  available: boolean;
+  promo: Promo | null;
+  /** 1+1 бойынша тегін порциялар */
+  free: number;
+};
 
 type CartContextValue = {
-  items: CartItem[];
+  items: CartLine[];
   totalCount: number;
   totalPrice: number;
+  /** Себетте бітіп қалған тағам бар ма */
+  hasSoldOut: boolean;
   add: (item: Pick<MenuItem, "id" | "name" | "price" | "image_url">) => void;
   decrement: (id: string) => void;
   remove: (id: string) => void;
@@ -17,15 +29,21 @@ type CartContextValue = {
 const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "qr-menu-cart";
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+type Props = {
+  children: React.ReactNode;
+  /** Сервердегі ағымдағы мәзір — баға/қолжетімділік/акция осыдан алынады */
+  menuItems: MenuItem[];
+};
+
+export function CartProvider({ children, menuItems }: Props) {
+  const [stored, setStored] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   // localStorage-тан қалпына келтіру (бет жаңарса да себет сақталады)
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setItems(JSON.parse(raw));
+      if (raw) setStored(JSON.parse(raw));
     } catch {
       /* ignore */
     }
@@ -33,42 +51,62 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (hydrated) localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, [items, hydrated]);
+    if (hydrated) localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+  }, [stored, hydrated]);
 
-  const add = useCallback((m: Pick<MenuItem, "id" | "name" | "price" | "image_url">) => {
-    setItems((prev) => {
-      const found = prev.find((i) => i.id === m.id);
-      if (found) return prev.map((i) => (i.id === m.id ? { ...i, quantity: i.quantity + 1 } : i));
-      return [...prev, { id: m.id, name: m.name, price: m.price, image_url: m.image_url, quantity: 1 }];
-    });
-  }, []);
+  const menuById = useMemo(() => new Map(menuItems.map((m) => [m.id, m])), [menuItems]);
+
+  const add = useCallback(
+    (m: Pick<MenuItem, "id" | "name" | "price" | "image_url">) => {
+      const current = menuById.get(m.id);
+      if (current && !current.is_available) return; // бітіп қалғанын қоспаймыз
+      setStored((prev) => {
+        const found = prev.find((i) => i.id === m.id);
+        if (found) return prev.map((i) => (i.id === m.id ? { ...i, quantity: i.quantity + 1 } : i));
+        return [...prev, { id: m.id, name: m.name, price: m.price, image_url: m.image_url, quantity: 1 }];
+      });
+    },
+    [menuById],
+  );
 
   const decrement = useCallback((id: string) => {
-    setItems((prev) =>
+    setStored((prev) =>
       prev
         .map((i) => (i.id === id ? { ...i, quantity: i.quantity - 1 } : i))
         .filter((i) => i.quantity > 0),
     );
   }, []);
 
-  const remove = useCallback((id: string) => setItems((prev) => prev.filter((i) => i.id !== id)), []);
-  const clear = useCallback(() => setItems([]), []);
+  const remove = useCallback((id: string) => setStored((prev) => prev.filter((i) => i.id !== id)), []);
+  const clear = useCallback(() => setStored([]), []);
 
   const value = useMemo<CartContextValue>(() => {
-    const totalCount = items.reduce((s, i) => s + i.quantity, 0);
-    const totalPrice = items.reduce((s, i) => s + i.quantity * i.price, 0);
+    const items: CartLine[] = stored.map((i) => {
+      const m = menuById.get(i.id);
+      const available = !!m && m.is_available;
+      const promo = m?.promo ?? null;
+      return {
+        ...i,
+        name: m?.name ?? i.name,
+        price: m?.price ?? i.price,
+        available,
+        promo,
+        free: available ? freeQuantity(promo, i.quantity) : 0,
+      };
+    });
+    const ok = items.filter((i) => i.available);
     return {
       items,
-      totalCount,
-      totalPrice,
+      totalCount: ok.reduce((s, i) => s + i.quantity, 0),
+      totalPrice: ok.reduce((s, i) => s + i.quantity * i.price, 0),
+      hasSoldOut: ok.length !== items.length,
       add,
       decrement,
       remove,
       clear,
-      quantityOf: (id) => items.find((i) => i.id === id)?.quantity ?? 0,
+      quantityOf: (id) => stored.find((i) => i.id === id)?.quantity ?? 0,
     };
-  }, [items, add, decrement, remove, clear]);
+  }, [stored, menuById, add, decrement, remove, clear]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

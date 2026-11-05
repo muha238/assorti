@@ -16,6 +16,7 @@ type Props = {
 export function MenuView({ categories, initialTable, restaurantName }: Props) {
   const [active, setActive] = useState<string | null>(categories[0]?.slug ?? null);
   const [cartOpen, setCartOpen] = useState(false);
+  const promoItems = categories.flatMap((c) => c.menu_items).filter((i) => i.promo && i.is_available);
 
   // Скролл кезінде белсенді категорияны анықтау
   useEffect(() => {
@@ -53,6 +54,12 @@ export function MenuView({ categories, initialTable, restaurantName }: Props) {
       </header>
 
       <main className="space-y-8 px-4 pt-2">
+        {promoItems.length > 0 && (
+          <div className="rounded-2xl bg-gradient-to-r from-rose-500 to-orange-400 p-4 text-white shadow-sm">
+            <p className="text-lg font-bold">🎁 Акция 1+1</p>
+            <p className="text-sm text-white/90">1 алсаңыз — екіншісі тегін: {promoItems.map((i) => i.name).join(", ")}</p>
+          </div>
+        )}
         {categories.map((c) => (
           <section key={c.id} id={`cat-${c.slug}`} className="scroll-mt-32">
             <h2 className="mb-3 text-lg font-bold">{c.name}</h2>

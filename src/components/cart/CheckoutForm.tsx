@@ -10,7 +10,7 @@ type Props = {
 };
 
 export function CheckoutForm({ initialTable, onSuccess }: Props) {
-  const { items, clear } = useCart();
+  const { items, clear, hasSoldOut } = useCart();
   const [table, setTable] = useState(initialTable);
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
@@ -74,11 +74,16 @@ export function CheckoutForm({ initialTable, onSuccess }: Props) {
         />
       </label>
 
+      {hasSoldOut && (
+        <p className="rounded-lg bg-red-50 p-2 text-sm font-medium text-red-600">
+          Себетте бітіп қалған тағам бар. Оны алып тастаңыз 🗑
+        </p>
+      )}
       {error && <p className="text-sm font-medium text-red-600">{error}</p>}
 
       <button
         type="submit"
-        disabled={loading || items.length === 0}
+        disabled={loading || items.length === 0 || hasSoldOut}
         className="w-full rounded-2xl bg-neutral-900 py-3.5 font-semibold text-white disabled:opacity-50"
       >
         {loading ? "Жіберілуде..." : "Тапсырыс беру"}

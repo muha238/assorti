@@ -6,7 +6,7 @@ type NotifyOrder = {
   tableNumber: string;
   comment?: string | null;
   total: number;
-  items: { name: string; price: number; quantity: number }[];
+  items: { name: string; price: number; quantity: number; free_quantity?: number }[];
 };
 
 function escapeHtml(s: string) {
@@ -24,7 +24,10 @@ export async function notifyNewOrder(order: NotifyOrder): Promise<void> {
   if (!token || !chatId) return;
 
   const lines = order.items
-    .map((i) => `• ${escapeHtml(i.name)} × ${i.quantity} — ${formatPrice(i.price * i.quantity)}`)
+    .map((i) => {
+      const free = i.free_quantity ? ` <b>+${i.free_quantity} тегін (1+1)</b>` : "";
+      return `• ${escapeHtml(i.name)} × ${i.quantity}${free} — ${formatPrice(i.price * i.quantity)}`;
+    })
     .join("\n");
 
   const parts = [

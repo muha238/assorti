@@ -1,7 +1,10 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatPrice } from "@/lib/format";
+import Link from "next/link";
 import { updateOrderStatus } from "./actions";
-import { AutoRefresh } from "./AutoRefresh";
+import { getDayStats } from "@/lib/stats";
+import { todayYMD } from "@/lib/date";
+import { AutoRefresh } from "@/components/ui/AutoRefresh";
 import type { Order, OrderStatus } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -22,11 +25,14 @@ const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
 
 export default async function AdminPage() {
   const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*, order_items(id, name, price, quantity)")
-    .order("created_at", { ascending: false })
-    .limit(50);
+  const [{ data, error }, today] = await Promise.all([
+    supabase
+      .from("orders")
+      .select("*, order_items(id, name, price, quantity, free_quantity)")
+      .order("created_at", { ascending: false })
+      .limit(50),
+    getDayStats(todayYMD()),
+  ]);
 
   if (error) throw new Error(error.message);
   const orders = (data ?? []) as Order[];
@@ -34,6 +40,17 @@ export default async function AdminPage() {
   return (
     <div className="mx-auto max-w-5xl p-4">
       <AutoRefresh seconds={15} />
+      <Link
+        href="/admin/stats"
+        className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-1 rounded-2xl bg-white p-4 ring-1 ring-neutral-100 hover:ring-neutral-300"
+      >
+        <span className="text-sm text-neutral-500">Бүгін:</span>
+        <span>💰 <b>{formatPrice(today.revenue)}</b></span>
+        <span>🧾 <b>{today.orders}</b> тапсырыс</span>
+        {today.items[0] && <span>🏆 <b>{today.items[0].name}</b></span>}
+        <span className="ml-auto text-sm text-neutral-400">Толығырақ →</span>
+      </Link>
+
       <h1 className="mb-4 text-2xl font-bold">Тапсырыстар</h1>
 
       {orders.length === 0 && <p className="text-neutral-500">Әзірге тапсырыс жоқ</p>}
@@ -56,7 +73,12 @@ export default async function AdminPage() {
               <ul className="my-3 space-y-1 text-sm">
                 {o.order_items.map((i) => (
                   <li key={i.id} className="flex justify-between">
-                    <span>{i.name} × {i.quantity}</span>
+                    <span>
+                      {i.name} × {i.quantity}
+                      {i.free_quantity > 0 && (
+                        <b className="ml-1 text-rose-600">+{i.free_quantity} тегін</b>
+                      )}
+                    </span>
                     <span className="text-neutral-500">{formatPrice(i.price * i.quantity)}</span>
                   </li>
                 ))}

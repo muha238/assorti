@@ -66,15 +66,28 @@ export function CartSheet({ open, onClose, initialTable }: Props) {
               {items.map((i) => (
                 <li key={i.id} className="flex items-center gap-3 py-3">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{i.name}</p>
-                    <p className="text-sm text-neutral-500">{formatPrice(i.price * i.quantity)}</p>
+                    <p className={`truncate font-medium ${i.available ? "" : "text-neutral-400 line-through"}`}>
+                      {i.name}
+                    </p>
+                    {i.available ? (
+                      <p className="text-sm text-neutral-500">
+                        {formatPrice(i.price * i.quantity)}
+                        {i.free > 0 && (
+                          <span className="ml-2 font-semibold text-rose-600">🎁 +{i.free} тегін</span>
+                        )}
+                      </p>
+                    ) : (
+                      <p className="text-sm font-medium text-red-600">Бітіп қалды — алып тастаңыз</p>
+                    )}
                   </div>
-                  <QuantityControl
-                    size="sm"
-                    quantity={i.quantity}
-                    onIncrement={() => add(i)}
-                    onDecrement={() => decrement(i.id)}
-                  />
+                  {i.available && (
+                    <QuantityControl
+                      size="sm"
+                      quantity={i.quantity}
+                      onIncrement={() => add(i)}
+                      onDecrement={() => decrement(i.id)}
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => remove(i.id)}
