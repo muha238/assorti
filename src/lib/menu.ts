@@ -10,5 +10,14 @@ export async function getMenu(): Promise<CategoryWithItems[]> {
     .order("sort_order", { referencedTable: "menu_items", ascending: true });
 
   if (error) throw new Error(`Мәзірді жүктеу қатесі: ${error.message}`);
-  return (data ?? []) as CategoryWithItems[];
+
+  // SQL Editor-ге қойғанда ұзын URL ішіне жол ауысуы (\r\n) түсіп кетуі мүмкін —
+  // ондай сурет ашылмайды, сондықтан бос орындарды алып тастаймыз.
+  return ((data ?? []) as CategoryWithItems[]).map((c) => ({
+    ...c,
+    menu_items: c.menu_items.map((i) => ({
+      ...i,
+      image_url: i.image_url?.replace(/\s+/g, "") || null,
+    })),
+  }));
 }
