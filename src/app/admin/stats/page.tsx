@@ -1,12 +1,14 @@
 import { formatPrice } from "@/lib/format";
 import { isYMD, todayYMD } from "@/lib/date";
 import { getDayStats } from "@/lib/stats";
+import { getRole } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 type Props = { searchParams: Promise<{ date?: string }> };
 
 export default async function AdminStatsPage({ searchParams }: Props) {
+  if ((await getRole()) !== "admin") return <p className="p-4 text-neutral-500">Рұқсат жоқ</p>;
   const { date } = await searchParams;
   const today = todayYMD();
   const day = isYMD(date) ? date : today;

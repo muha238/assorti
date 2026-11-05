@@ -1,11 +1,13 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatPrice } from "@/lib/format";
 import { clearAllPromos, setItemAvailability, setItemPromo } from "../actions";
+import { getRole } from "@/lib/auth";
 import type { CategoryWithItems } from "@/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminMenuPage() {
+  const isAdmin = (await getRole()) === "admin";
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("categories")
@@ -41,7 +43,7 @@ export default async function AdminMenuPage() {
               <p className="text-sm text-neutral-500">Белсенді 1+1 акциялар</p>
               <p className="text-2xl font-bold">{promoted.length}</p>
             </div>
-            {promoted.length > 0 && (
+            {isAdmin && promoted.length > 0 && (
               <form action={clearAllPromos}>
                 <button className="rounded-lg px-3 py-1.5 text-sm text-red-600 ring-1 ring-red-200">
                   Барлық акцияны тоқтату
@@ -74,17 +76,19 @@ export default async function AdminMenuPage() {
                     <p className="text-sm text-neutral-500">{formatPrice(item.price)}</p>
                   </div>
 
-                  <form action={setItemPromo}>
-                    <input type="hidden" name="id" value={item.id} />
-                    <input type="hidden" name="promo" value={item.promo ? "" : "1+1"} />
-                    <button
-                      className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-                        item.promo ? "bg-rose-500 text-white" : "text-rose-600 ring-1 ring-rose-200"
-                      }`}
-                    >
-                      {item.promo ? "🎁 1+1 ✓ тоқтату" : "🎁 1+1 жариялау"}
-                    </button>
-                  </form>
+                  {isAdmin && (
+                    <form action={setItemPromo}>
+                      <input type="hidden" name="id" value={item.id} />
+                      <input type="hidden" name="promo" value={item.promo ? "" : "1+1"} />
+                      <button
+                        className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+                          item.promo ? "bg-rose-500 text-white" : "text-rose-600 ring-1 ring-rose-200"
+                        }`}
+                      >
+                        {item.promo ? "🎁 1+1 ✓ тоқтату" : "🎁 1+1 жариялау"}
+                      </button>
+                    </form>
+                  )}
 
                   <form action={setItemAvailability}>
                     <input type="hidden" name="id" value={item.id} />

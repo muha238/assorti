@@ -1,24 +1,31 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { roleFromAuthHeader } from "@/lib/auth-core";
 
-/** /admin үшін қарапайым Basic Auth. Продакшнда Supabase Auth-қа ауыстыруға болады. */
+/**
+ * /admin үшін Basic Auth, екі рөл:
+ *  - ADMIN_USER / ADMIN_PASSWORD     → бәрі
+ *  - CASHIER_USER / CASHIER_PASSWORD → тапсырыстар + «Бітті/Бар»
+ * Рөл тексерісі server action-дардың ішінде де қайталанады (src/lib/auth.ts).
+ */
 export function middleware(req: NextRequest) {
-  const user = process.env.ADMIN_USER;
-  const pass = process.env.ADMIN_PASSWORD;
-
-  if (!user || !pass) {
+  if (!process.env.ADMIN_USER || !process.env.ADMIN_PASSWORD) {
     return new NextResponse("ADMIN_USER / ADMIN_PASSWORD орнатылмаған", { status: 503 });
   }
 
-  const header = req.headers.get("authorization");
-  if (header?.startsWith("Basic ")) {
-    const [u, p] = atob(header.slice(6)).split(":");
-    if (u === user && p === pass) return NextResponse.next();
+  const role = roleFromAuthHeader(req.headers.get("authorization"));
+  if (!role) {
+    return new NextResponse("Auth required", {
+      status: 401,
+      headers: { "WWW-Authenticate": 'Basic realm="admin", charset="UTF-8"' },
+    });
   }
 
-  return new NextResponse("Auth required", {
-    status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="admin"' },
-  });
+  // Кассирге статистика беті жабық
+  if (role === "cashier" && req.nextUrl.pathname.startsWith("/admin/stats")) {
+    return NextResponse.redirect(new URL("/admin", req.url));
+  }
+
+  return NextResponse.next();
 }
 
 export const config = { matcher: ["/admin/:path*"] };
