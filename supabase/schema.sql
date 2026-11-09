@@ -9,6 +9,7 @@ create extension if not exists "pgcrypto";
 create table if not exists public.categories (
   id          uuid primary key default gen_random_uuid(),
   name        text not null,
+  name_ru     text,
   slug        text not null unique,
   sort_order  int  not null default 0,
   created_at  timestamptz not null default now()
@@ -19,7 +20,9 @@ create table if not exists public.menu_items (
   id           uuid primary key default gen_random_uuid(),
   category_id  uuid not null references public.categories(id) on delete cascade,
   name         text not null,
+  name_ru      text,
   description  text,
+  description_ru text,
   price        int  not null check (price >= 0),   -- теңгемен, бүтін сан
   image_url    text,
   is_available boolean not null default true,
@@ -27,6 +30,10 @@ create table if not exists public.menu_items (
   sort_order   int not null default 0,
   created_at   timestamptz not null default now()
 );
+alter table public.categories add column if not exists name_ru text;
+alter table public.menu_items
+  add column if not exists name_ru text,
+  add column if not exists description_ru text;
 create index if not exists menu_items_category_idx on public.menu_items(category_id);
 
 -- ── Тапсырыстар ─────────────────────────────────────────────
@@ -74,24 +81,24 @@ create policy "public read menu_items" on public.menu_items
 -- orders / order_items үшін policy жоқ → anon кілтпен қолжетімсіз.
 
 -- ── Demo деректер ───────────────────────────────────────────
-insert into public.categories (name, slug, sort_order) values
-  ('Сусындар',        'drinks',   1),
-  ('Фастфуд',         'fastfood', 2),
-  ('Негізгі тағамдар','main',     3),
-  ('Десерттер',       'desserts', 4)
+insert into public.categories (name, name_ru, slug, sort_order) values
+  ('Сусындар',        'Напитки',       'drinks',   1),
+  ('Фастфуд',         'Фастфуд',       'fastfood', 2),
+  ('Негізгі тағамдар','Основные блюда','main',     3),
+  ('Десерттер',       'Десерты',       'desserts', 4)
 on conflict (slug) do nothing;
 
-insert into public.menu_items (category_id, name, description, price, image_url, sort_order)
-select c.id, v.name, v.description, v.price, v.image_url, v.sort_order
+insert into public.menu_items (category_id, name, name_ru, description, description_ru, price, image_url, sort_order)
+select c.id, v.name, v.name_ru, v.description, v.description_ru, v.price, v.image_url, v.sort_order
 from (values
-  ('drinks',   'Лимонад «Жалбыз»',  'Үйде жасалған, жалбыз бен лайм',          1200, 'https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=800', 1),
-  ('drinks',   'Капучино',          'Қос эспрессо, сүт көбігі',                 1100, 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=800', 2),
-  ('fastfood', 'Классик бургер',    'Сиыр котлеті, чеддер, қияр, соус',        2900, 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800', 1),
-  ('fastfood', 'Фри',               'Қытырлақ картоп, тұз',                     900, 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=800', 2),
-  ('main',     'Бешбармақ',         'Жылқы еті, қамыр, сорпа',                 4500, 'https://images.unsplash.com/photo-1547592180-85f173990554?w=800', 1),
-  ('main',     'Стейк рибай',       '300 г, гриль көкөніс',                    8900, 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=800', 2),
-  ('desserts', 'Чизкейк',           'Нью-Йорк классикасы, жидек соусы',        1800, 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=800', 1),
-  ('desserts', 'Бауырсақ бал мен',  'Ыстық бауырсақ, тау балы',                1000, 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=800', 2)
-) as v(slug, name, description, price, image_url, sort_order)
+  ('drinks',   'Лимонад «Жалбыз»', 'Лимонад «Мята»',   'Үйде жасалған, жалбыз бен лайм',    'Домашний лимонад с мятой и лаймом', 1200, 'https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=800', 1),
+  ('drinks',   'Капучино',         'Капучино',          'Қос эспрессо, сүт көбігі',           'Двойной эспрессо и молочная пенка', 1100, 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=800', 2),
+  ('fastfood', 'Классик бургер',   'Классический бургер','Сиыр котлеті, чеддер, қияр, соус', 'Говяжья котлета, чеддер, огурец, соус', 2900, 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800', 1),
+  ('fastfood', 'Фри',              'Картофель фри',      'Қытырлақ картоп, тұз',                'Хрустящий картофель с солью', 900, 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=800', 2),
+  ('main',     'Бешбармақ',        'Бешбармак',          'Жылқы еті, қамыр, сорпа',             'Конина, тесто и бульон', 4500, 'https://images.unsplash.com/photo-1547592180-85f173990554?w=800', 1),
+  ('main',     'Стейк рибай',      'Стейк рибай',        '300 г, гриль көкөніс',                '300 г, овощи на гриле', 8900, 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=800', 2),
+  ('desserts', 'Чизкейк',          'Чизкейк',            'Нью-Йорк классикасы, жидек соусы',    'Классический чизкейк с ягодным соусом', 1800, 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=800', 1),
+  ('desserts', 'Бауырсақ бал мен', 'Баурсаки с мёдом',  'Ыстық бауырсақ, тау балы',            'Горячие баурсаки с горным мёдом', 1000, 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=800', 2)
+) as v(slug, name, name_ru, description, description_ru, price, image_url, sort_order)
 join public.categories c on c.slug = v.slug
 where not exists (select 1 from public.menu_items m where m.name = v.name);

@@ -5,15 +5,15 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
 export const metadata: Metadata = {
-  title: "QR Menu",
-  description: "Мәзір және онлайн тапсырыс",
+  title: "Dala Cafe — QR Menu",
+  description: "Мәзір және онлайн тапсырыс / Меню и онлайн-заказ",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#fafafa",
+  themeColor: "#f7f4ed",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

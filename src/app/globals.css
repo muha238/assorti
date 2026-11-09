@@ -2,11 +2,28 @@
 
 :root {
   color-scheme: light;
+  --page: #f7f4ed;
+  --ink: #28372d;
+  --muted: #77766e;
+  --accent: #c76f3d;
 }
 
 body {
-  @apply bg-neutral-50 text-neutral-900 antialiased;
+  @apply antialiased;
+  background: var(--page);
+  color: var(--ink);
   -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: #e8c4a4;
+  color: #28372d;
+}
+
+.menu-shell {
+  background:
+    radial-gradient(ellipse at 50% -18rem, rgba(226, 190, 151, 0.3), transparent 34rem),
+    var(--page);
 }
 
 .no-scrollbar::-webkit-scrollbar {

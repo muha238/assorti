@@ -3,6 +3,7 @@ import type { Promo } from "@/lib/promo";
 export type Category = {
   id: string;
   name: string;
+  name_ru?: string | null;
   slug: string;
   sort_order: number;
 };
@@ -11,7 +12,9 @@ export type MenuItem = {
   id: string;
   category_id: string;
   name: string;
+  name_ru?: string | null;
   description: string | null;
+  description_ru?: string | null;
   price: number;
   image_url: string | null;
   is_available: boolean;
@@ -24,6 +27,7 @@ export type CategoryWithItems = Category & { menu_items: MenuItem[] };
 export type CartItem = {
   id: string;
   name: string;
+  name_ru?: string | null;
   price: number;
   image_url: string | null;
   quantity: number;

@@ -19,7 +19,7 @@ type CartContextValue = {
   totalPrice: number;
   /** Себетте бітіп қалған тағам бар ма */
   hasSoldOut: boolean;
-  add: (item: Pick<MenuItem, "id" | "name" | "price" | "image_url">) => void;
+  add: (item: Pick<MenuItem, "id" | "name" | "name_ru" | "price" | "image_url">) => void;
   decrement: (id: string) => void;
   remove: (id: string) => void;
   clear: () => void;
@@ -57,13 +57,16 @@ export function CartProvider({ children, menuItems }: Props) {
   const menuById = useMemo(() => new Map(menuItems.map((m) => [m.id, m])), [menuItems]);
 
   const add = useCallback(
-    (m: Pick<MenuItem, "id" | "name" | "price" | "image_url">) => {
+    (m: Pick<MenuItem, "id" | "name" | "name_ru" | "price" | "image_url">) => {
       const current = menuById.get(m.id);
       if (current && !current.is_available) return; // бітіп қалғанын қоспаймыз
       setStored((prev) => {
         const found = prev.find((i) => i.id === m.id);
         if (found) return prev.map((i) => (i.id === m.id ? { ...i, quantity: i.quantity + 1 } : i));
-        return [...prev, { id: m.id, name: m.name, price: m.price, image_url: m.image_url, quantity: 1 }];
+        return [
+          ...prev,
+          { id: m.id, name: m.name, name_ru: m.name_ru, price: m.price, image_url: m.image_url, quantity: 1 },
+        ];
       });
     },
     [menuById],
@@ -88,6 +91,7 @@ export function CartProvider({ children, menuItems }: Props) {
       return {
         ...i,
         name: m?.name ?? i.name,
+        name_ru: m?.name_ru ?? i.name_ru,
         price: m?.price ?? i.price,
         available,
         promo,

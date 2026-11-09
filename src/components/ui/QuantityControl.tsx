@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/components/i18n/LanguageProvider";
+
 type Props = {
   quantity: number;
   onIncrement: () => void;
@@ -8,6 +10,7 @@ type Props = {
 };
 
 export function QuantityControl({ quantity, onIncrement, onDecrement, size = "md" }: Props) {
+  const { t } = useLanguage();
   const btn =
     size === "sm"
       ? "h-7 w-7 text-base"
@@ -17,7 +20,7 @@ export function QuantityControl({ quantity, onIncrement, onDecrement, size = "md
       <button
         type="button"
         onClick={onDecrement}
-        aria-label="Азайту"
+        aria-label={t("decrease")}
         className={`${btn} flex items-center justify-center rounded-full bg-white font-semibold shadow-sm active:scale-95`}
       >
         −
@@ -26,7 +29,7 @@ export function QuantityControl({ quantity, onIncrement, onDecrement, size = "md
       <button
         type="button"
         onClick={onIncrement}
-        aria-label="Көбейту"
+        aria-label={t("increase")}
         className={`${btn} flex items-center justify-center rounded-full bg-neutral-900 font-semibold text-white active:scale-95`}
       >
         +
